@@ -1,0 +1,36 @@
+user:{
+    id(Pk)
+    username    : VARCHAR(255)
+    email       : VARCHAR(255)
+    password    : VARCHAR(255)
+    role        : ENUM
+}
+category:{
+    id(Pk)       : INT
+    productname  : VARCHAR(255)
+    price        : DECIMAL(10,2)
+    stockqty     : INT
+    description  : TEXT
+}
+contact{
+    id(Pk)       : INT
+    name         : VARCHAR(100)
+    email        : VARCHAR(100)
+    message      : TEXT
+}
+product{
+    id(Pk)
+    productname  : VARCHAR(150)
+    description  : TEXT 
+    price        : DECIMAL(10,2) 
+    stock        : INT
+    image        : VARCHAR(255)
+
+}
+
+CREATE TABLE orders (
+    id           : INT 
+    items        : JSON
+    total_amount : DECIMAL(10,2) 
+    status       : ENUM
+);
