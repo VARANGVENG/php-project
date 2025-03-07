@@ -3,679 +3,231 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/sweetalert/2.1.2/sweetalert.min.js"></script>
 
+
+
+// insert product 
+
 <?php
+$servername = "localhost"; // Change this if needed
+$username = "root"; // Your MySQL username
+$password = ""; // Your MySQL password
+$dbname = "your_database_name"; // Your database name
 
-$connection = new mysqli('localhost', 'root', '', 'php_project_management');
+// Create connection
+$conn = new mysqli($servername, $username, $password, $dbname);
 
-function register()
-{
-  global $connection;
-  if (isset($_POST['btn_register'])) {
-    $name = $_POST['username'];
-    $email = $_POST['email'];
-    $password = $_POST['password'];
-    $profile = $_FILES['profile']['name'];
-
-    if (!empty($name) && !empty($email) && !empty($password) && !empty($profile)) {
-      $profile = rand(1, 99999) . '_' . $profile;
-      $path = "asset/image" . $profile;
-      move_uploaded_file($_FILES['profile']['tmp_name'], $path);
-
-      $password = md5($password);
-
-      $sql = "INSERT INTO `user` (`username`,`email`,`password`,`profile`) VALUES ('$name','$email','$password','$profile')";
-      $rs = $connection->query($sql);
-      header('location:login.php');
-    }
-  }
+// Check connection
+if ($conn->connect_error) {
+    die("Connection failed: " . $conn->connect_error);
 }
-register();
 
-session_start();
+// Check if form is submitted
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    $firstname = $_POST["firstname"];
+    $lastname = $_POST["lastname"];
+    $companyname = $_POST["companyname"];
+    $phonenumber = $_POST["phonenumber"];
+    $emailaddress = $_POST["emailaddress"];
+    $country = $_POST["country"];
+    $addressline1 = $_POST["addressline1"];
+    $addressline2 = $_POST["addressline2"];
+    $city = $_POST["city"];
+    $district = $_POST["district"];
+    $postcode = $_POST["postcode"];
 
-function login()
-{
-  global $connection;
-  if (isset($_POST['btn_login'])) {
-    $name_email = $_POST['name_email'];
-    $password = $_POST['password'];
-    $password = md5($password);
+    // Prepare and bind
+    $stmt = $conn->prepare("INSERT INTO customers (firstname, lastname, companyname, phonenumber, emailaddress, country, addressline1, addressline2, city, district, postcode) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    $stmt->bind_param("ssssssssssi", $firstname, $lastname, $companyname, $phonenumber, $emailaddress, $country, $addressline1, $addressline2, $city, $district, $postcode);
 
-    if (!empty($password) && !empty($name_email)) {
-      $sql = "SELECT * FROM `user` WHERE (`email` = '$name_email' OR `username` = '$name_email' ) AND `password` = '$password'";
-      $rs = $connection->query($sql);
-      $row = mysqli_fetch_assoc($rs);
-      if ($row) {
-        $_SESSION['user'] = $row['id'];
-        header('location:index.php');
-      } else {
-        echo'
-          <script>
-                $(document).ready(function(){ 
-                    swal({
-                      title: "Error",
-                      text: "Invalid username email or password!!",
-                      icon: "error",
-                    });
-                  });
-            </script>
-        '; 
-      }
+    // Execute the statement
+    if ($stmt->execute()) {
+        echo "New record added successfully!";
     } else {
-      echo'
-        <script>
-          $(document).ready(function(){ 
-              swal({
-                title: "Error",
-                text: "Please input all data!",
-                icon: "error",
-              });
-            });
-        </script>
-      ';
+        echo "Error: " . $stmt->error;
     }
-  }
-}
-login();
 
-// Logo function
-
-function addLogo()
-{
-  global $connection;
-  if (isset($_POST['btn-add-logo'])) {
-    $status = $_POST['status'];
-    $thumbnail = $_FILES['thumbnail']['name'];
-    if (!empty($status) && !empty($thumbnail)) {
-      $thumbnail = rand(1, 99999) . '_' . $thumbnail;
-      $path = 'assets/image/' . $thumbnail;
-      move_uploaded_file($_FILES['thumbnail']['tmp_name'], $path);
-      $sql = "INSERT INTO `logo` (`thumbnail`, `status`) VALUES ('$thumbnail','$status')";
-      $rs = $connection->query($sql);
-      if ($rs) {
-        echo '
-            <script>
-            $(document).ready(function(){ 
-                  swal({
-                    title: "Success",
-                    text: "Logo add Successfully!",
-                    icon: "success",
-                  });
-                });
-            </script>
-        ';
-        }
-      } 
-      else {
-        echo '
-           <script>
-            $(document).ready(function(){ 
-                swal({
-                  title: "Error",
-                  text: "Logo add Unsuccessfully!",
-                  icon: "error",
-                });
-              });
-        </script>
-        ';
-      }
-  }
-}
-addLogo();
-
-function viewLogo()
-{
-  global $connection;
-  $sql = "SELECT * FROM `logo` ORDER BY `id` DESC";
-  $rs = $connection->query($sql);
-  while ($row = mysqli_fetch_assoc($rs)) {
-    echo '
-        <tr>
-                <td>' . $row['id'] . '</td>
-                 <td>' . $row['status'] . '</td>
-                 <td><img src="assets/image/' . $row['thumbnail'] . '" width="150px"/></td>
-                 <td width="150px">
-                 <a href="update-logo.php?id=' . $row['id'] . '" class="btn btn-primary">Update</a>
-                <button type="button" remove-id="' . $row['id'] . '" class="btn btn-danger btn-remove" data-bs-toggle="modal" data-bs-target="#exampleModal">
-                Remove
-             </button>
-           </td>
-        </tr>
-    ';
-  }
+    // Close the connection
+    $stmt->close();
 }
 
-function updateLogo()
-{
-  global $connection;
-  if (isset($_POST['btn-update-logo'])) {
-    $id = $_GET['id'];
-    $status = $_POST['status'];
-    $thumbnail = $_FILES['thumbnail']['name'];
-    if ($thumbnail) {
-      $thumbnail = rand(1, 99999) . '_' . $thumbnail;
-      $path = 'assets/image/' . $thumbnail;
-      move_uploaded_file($_FILES['thumbnail']['tmp_name'], $path);
+$conn->close();
+
+// update product
+
+
+$servername = "localhost"; // Change this if needed
+$username = "root"; // Your MySQL username
+$password = ""; // Your MySQL password
+$dbname = "your_database_name"; // Your database name
+
+// Create connection
+$conn = new mysqli($servername, $username, $password, $dbname);
+
+// Check connection
+if ($conn->connect_error) {
+    die("Connection failed: " . $conn->connect_error);
+}
+
+// Get product ID from URL
+$id = isset($_GET['id']) ? intval($_GET['id']) : 0;
+
+// Fetch existing product details
+$product = null;
+if ($id > 0) {
+    $result = $conn->query("SELECT * FROM products WHERE id = $id");
+    if ($result->num_rows > 0) {
+        $product = $result->fetch_assoc();
     } else {
-      $thumbnail = $_POST['old_thumbnail'];
+        die("Product not found!");
     }
-    if (!empty($status) && !empty($thumbnail)) {
-      $sql = "UPDATE `logo` SET `thumbnail` = '$thumbnail', `status` = '$status' WHERE `id` = '$id'";
-      $rs = $connection->query($sql);
-      if ($rs) {
-        echo '
-           <script>
-            $(document).ready(function(){ 
-                swal({
-                  title: "Success",
-                  text: "Logo update Successfully!",
-                  icon: "success",
-                });
-              });
-        </script>
-        ';
-      }
-    }
-    else{
-      echo '
-           <script>
-            $(document).ready(function(){ 
-                swal({
-                  title: "Error",
-                  text: "Logo update Unsuccessfully!",
-                  icon: "error",
-                });
-              });
-        </script>
-        ';
-    }
-  }
 }
-updateLogo();
 
-function deleteLogo()
-{
-  global $connection;
-  if (isset($_POST['btn-delete-logo'])) {
-    $id = $_POST['remove_id'];
-    $sql = "DELETE FROM `logo` WHERE `id` = '$id'";
-    $rs = $connection->query($sql);
-    if ($rs) {
-      echo '
-        <script>
-            $(document).ready(function(){ 
-                swal({
-                  title: "Success",
-                  text: "Logo delete Successfully!",
-                  icon: "success",
-                });
-              });
-        </script>
-      ';
-     }
-   }
-}
-deleteLogo();
+// Update product when form is submitted
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    $name = $_POST["name"];
+    $description = $_POST["description"];
+    $price = $_POST["price"];
+    $stock = $_POST["stock"];
 
-// News Function
+    // Prepare update statement
+    $stmt = $conn->prepare("UPDATE products SET name=?, description=?, price=?, stock=? WHERE id=?");
+    $stmt->bind_param("ssdii", $name, $description, $price, $stock, $id);
 
-function addNews()
-{
-  global $connection;
-  if (isset($_POST['btn-add-news'])){
-    $title = $_POST['title'];
-    $news_type = $_POST['news_type'];
-    $category = $_POST['category'];
-    $thumbnail = $_FILES['thumbnail']['name'];
-    $banner = $_FILES['banner']['name'];
-    $description = $_POST['description'];
-
-    if (!empty($title) && !empty($news_type) && !empty($category) && !empty($thumbnail) && !empty($banner) && !empty($description)) {
-      $thumbnail = rand(1, 99999) . '_' . $thumbnail;
-      $banner = rand(1, 99999) . '_' . $banner;
-      $pathThumbnail = 'assets/image/' . $thumbnail;
-      $pathBanner = 'assets/image/' . $banner;
-
-      move_uploaded_file($_FILES['thumbnail']['tmp_name'], $pathThumbnail);
-      move_uploaded_file($_FILES['banner']['tmp_name'], $pathBanner);
-
-      $sql = "INSERT INTO `news`(`title`, `thumbnail`, `banner`, `news_type`, `category`, `description`) 
-              VALUES ('$title', '$thumbnail', '$banner', '$news_type', '$category', '$description')";
-      $rs = $connection->query($sql);
-      if($rs){
-        echo '
-            <script>
-              $(document).ready(function(){
-                swal({
-                  title: "Success",
-                  text: "News add Successfully!",
-                  icon: "success",
-                  });
-              });
-          </script>
-        '; 
-       }
+    // Execute update
+    if ($stmt->execute()) {
+        $message = "Product updated successfully!";
+        $alertClass = "alert-success";
+    } else {
+        $message = "Error updating product: " . $stmt->error;
+        $alertClass = "alert-danger";
     }
-    else{
-      echo '
-          <script>
-              $(document).ready(function(){
-                  swal({
-                  title: "Error",
-                  text: "News add Unsuccessfully!",
-                  icon: "error",
-                  });
-              });
-          </script>
-       '; 
-     }
-  }
-}
-addNews();
 
-function viewNews()
-{
-  global $connection;
-  $sql = "SELECT * FROM `news` ORDER BY `id` DESC";
-  $rs = $connection->query($sql);
-  while($row = mysqli_fetch_assoc($rs)){
-      echo '
+    // Refresh product data
+    $stmt->close();
+    $result = $conn->query("SELECT * FROM products WHERE id = $id");
+    $product = $result->fetch_assoc();
+}
+
+$conn->close();
+
+
+// delete product
+
+$servername = "localhost"; // Change this if needed
+$username = "root"; // Your MySQL username
+$password = ""; // Your MySQL password
+$dbname = "your_database_name"; // Your database name
+
+// Create connection
+$conn = new mysqli($servername, $username, $password, $dbname);
+
+// Check connection
+if ($conn->connect_error) {
+    die("Connection failed: " . $conn->connect_error);
+}
+
+// Check if an ID is provided
+if (isset($_GET['id'])) {
+    $id = intval($_GET['id']); // Get the product ID
+
+    // Prepare delete statement
+    $stmt = $conn->prepare("DELETE FROM products WHERE id = ?");
+    $stmt->bind_param("i", $id);
+
+    // Execute delete
+    if ($stmt->execute()) {
+        $message = "Product deleted successfully!";
+        $alertClass = "alert-success";
+    } else {
+        $message = "Error deleting product: " . $stmt->error;
+        $alertClass = "alert-danger";
+    }
+
+    $stmt->close();
+} else {
+    $message = "No product ID provided!";
+    $alertClass = "alert-warning";
+}
+
+$conn->close();
+
+
+// view product 
+
+$servername = "localhost"; // Change this if needed
+$username = "root"; // Your MySQL username
+$password = ""; // Your MySQL password
+$dbname = "your_database_name"; // Your database name
+
+// Create connection
+$conn = new mysqli($servername, $username, $password, $dbname);
+
+// Check connection
+if ($conn->connect_error) {
+    die("Connection failed: " . $conn->connect_error);
+}
+
+// Fetch products
+$sql = "SELECT * FROM products ORDER BY id DESC";
+$result = $conn->query($sql);
+?>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>View Products</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+
+<div class="container mt-5">
+    <h2 class="text-center">Product List</h2>
+    <a href="add_product.php" class="btn btn-success mb-3">+ Add New Product</a>
+
+    <table class="table table-bordered table-striped">
+        <thead class="table-dark">
             <tr>
-                 <td>'.$row['title'].'</td>
-                 <td>'.$row['news_type'].'</td>
-                 <td>'.$row['category'].'</td>
-                 <td><img  src="assets/image/'.$row['thumbnail'].'"; width="150px"/></td>
-                 <td><img src="assets/image/'.$row['banner'].'" width="150px"/></td>
-                 <td>'.$row['viewer'].'</td>
-                 <td>'.$row['postdate'].'</td>
-              <td width="150px">
-                  <a href="update-news.php?id='.$row['id'].'"class="btn btn-primary">Update</a>
-                  <button type="button" remove-id="'.$row['id'].'" class="btn btn-danger btn-remove" data-bs-toggle="modal" data-bs-target="#exampleModal">
-                  Remove
-                </button>
-              </td>
-           </tr>
-          ';
-        }
-  }
+                <th>ID</th>
+                <th>Name</th>
+                <th>Description</th>
+                <th>Price ($)</th>
+                <th>Stock</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            <?php if ($result->num_rows > 0): ?>
+                <?php while ($row = $result->fetch_assoc()): ?>
+                    <tr>
+                        <td><?php echo $row["id"]; ?></td>
+                        <td><?php echo htmlspecialchars($row["name"]); ?></td>
+                        <td><?php echo htmlspecialchars($row["description"]); ?></td>
+                        <td><?php echo number_format($row["price"], 2); ?></td>
+                        <td><?php echo $row["stock"]; ?></td>
+                        <td>
+                            <a href="update_product.php?id=<?php echo $row['id']; ?>" class="btn btn-warning btn-sm">Edit</a>
+                            <a href="delete_product.php?id=<?php echo $row['id']; ?>" class="btn btn-danger btn-sm"
+                               onclick="return confirm('Are you sure you want to delete this product?');">
+                               Delete
+                            </a>
+                        </td>
+                    </tr>
+                <?php endwhile; ?>
+            <?php else: ?>
+                <tr><td colspan="6" class="text-center">No products found</td></tr>
+            <?php endif; ?>
+        </tbody>
+    </table>
+</div>
 
-function updateNews(){
-  global $connection;
-  if(isset($_POST['btn-update-news'])){
-  $id = $_GET['id'];
-  $title = $_POST['title'];
-  $news_type = $_POST['news_type'];
-  $category = $_POST['category'];
-  $thumbnail = $_FILES['thumbnail']['name'];
-  $banner = $_FILES['banner']['name'];
-  $description = $_POST['description'];
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
-  if($thumbnail){
-    $thumbnail = rand(1,99999).'_'.$thumbnail;
-    $pathThumbnail = 'assets/image/'.$thumbnail;
-    move_uploaded_file($_FILES['thumbnail']['tmp_name'],$pathThumbnail);
-  }
-  else{
-    $thumbnail = $_POST['old_thumbnail'];
-  }
+</body>
+</html>
 
-  if($banner){
-    $banner = rand(1,99999).'_'.$banner;
-    $pathBanner = 'assets/image/'.$banner;
-    move_uploaded_file($_FILES['banner']['tmp_name'],$pathBanner);
-  }
-  else{
-    $banner = $_POST['old_banner'];
-  }
-
-  if(!empty( $title) && !empty($news_type) && !empty($category) && !empty($thumbnail) && !empty($banner) && !empty($description)){
-    $sql ="UPDATE `news` SET `title` = '$title', `thumbnail` = '$thumbnail', `banner` = '$banner', `news_type` = '$news_type', `category` = '$category', `description` = '$description' WHERE `id` = '$id'";
-    $rs = $connection->query($sql);
-    if($rs){
-      echo'News update successfully!';
-    }
-    else{
-      echo'News update Unsuccessfully!';
-    }
-   }
- }
-}
-updateNews();
-
-function deleteNews()
-{
-  global $connection;
-  if (isset($_POST['btn-delete-news'])) {
-    $id = $_POST['remove_id'];
-    $sql = "DELETE FROM `news` WHERE `id` = '$id'";
-    $rs = $connection->query($sql);
-    if ($rs) {
-      echo '
-          <script>
-            $(document).ready(function(){ 
-              swal({
-                title: "Success",
-                text: "News delete Successfully!",
-                icon: "success",
-                });
-            });
-          </script>
-       '; 
-    }
-  }
-}
-deleteNews();
-
-function addAboutUs(){
-  global $connection;
-  if(isset($_POST['btn-add-aboutUs'])){
-     $description = $_POST['description'];
-     if(!empty($description)){
-       $sql = "INSERT INTO `about_us`(`description`) VALUES ('$description')";
-       $rs = $connection->query($sql);
-       if ($rs){
-           echo '
-             <script>
-                $(document).ready(function(){ 
-                  swal({
-                  title: "Success",
-                  text: "About Us add Successfully!",
-                  icon: "success",
-                });
-              });
-            </script>
-           ';
-         }
-     }
-  }
-  // else{
-  //   echo'
-  //      <script>
-  //         $(document).ready(function(){ 
-  //           swal({
-  //             title: "Error",
-  //             text: "About Us add Unsuccessfully!",
-  //             icon: "error",
-  //           });
-  //         });
-  //     </script>
-  //   ';
-  // }
-}
-addAboutUs();
-
-function viewAllAboutUs(){
- global $connection;
- $sql = "SELECT * FROM `about_us` ORDER BY `id` DESC";
- $rs = $connection->query($sql);
-while($row = mysqli_fetch_assoc($rs)){
- echo'
-      <tr>
-       <td>'.$row['id'].'</td>
-       <td>'.$row['description'].'</td>
-       <td width="150px">
-        <a href="update-about-us.php?id='.$row['id'].'"class="btn btn-primary">Update</a>
-        <button type="button" remove-id="'.$row['id'].'" class="btn btn-danger btn-remove" data-bs-toggle="modal" data-bs-target="#exampleModal">
-        Remove
-        </button>
-      </td>
-      </tr>
-     ';
-   }
-}
-
-function updateAboutUs(){
-  global $connection;
-  if(isset($_POST['btn-update-aboutUs'])){
-    $id = $_GET['id'];
-    $description = $_POST['description'];
-    if(!empty($description)){ 
-      $sql ="UPDATE `about_us` SET `description`='$description' WHERE `id`='$id'";
-      $rs = $connection->query($sql);
-      if($rs){
-        echo '
-           <script>
-            $(document).ready(function(){ 
-              swal({
-                title: "Success",
-                text: "About Us update Successfully!",
-                icon: "success",
-                });
-            });
-          </script>
-        ';
-      }
-      else
-       echo '
-          <script>
-            $(document).ready(function(){ 
-              swal({
-                title: "Error",
-                text: "About Us update Unsuccessfully!",
-                icon: "error",
-                });
-            });
-          </script>
-       ';
-    }
-  }
-}
-updateAboutUs();
-
-function deleteAboutUs()
-{
-  global $connection;
-  if (isset($_POST['btn-delete-aboutUs'])) {
-    $id = $_POST['remove_id'];
-    $sql = "DELETE FROM `about_us` WHERE `id` = '$id'";
-    $rs = $connection->query($sql);
-    if ($rs) {
-      echo '
-         <script>
-              $(document).ready(function(){ 
-                swal({
-                  title: "Success",
-                  text: "About Us delete Successfully!",
-                  icon: "success",
-                });
-              });
-          </script>
-      ';
-    } 
-  }
-}
-deleteAboutUs();
-
-function viewFeedback(){
-  global $connection;
-  $sql = "SELECT * FROM `feedback` ORDER BY `id` DESC";
-  $rs = $connection->query($sql);
- while($row = mysqli_fetch_assoc($rs)){
-  echo'
-       <tr>
-        <td>'.$row['id'].'</td>
-        <td>'.$row['username'].'</td>
-        <td>'.$row['email'].'</td>
-        <td>'.$row['telephone'].'</td>
-        <td>'.$row['address'].'</td>
-        <td>'.$row['message'].'</td>
-        <td width="150px">
-         <button type="button" remove-id="'.$row['id'].'" class="btn btn-danger btn-remove" data-bs-toggle="modal" data-bs-target="#exampleModal">
-         Remove
-         </button>
-       </td>
-       </tr>
-      ';
-    }
- }
-
- function deleteFeedback()
- {
-   global $connection;
-   if (isset($_POST['btn-delete-feedback'])) {
-     $id = $_POST['remove_id'];
-     $sql = "DELETE FROM `feedback` WHERE `id` = '$id'";
-     $rs = $connection->query($sql);
-     if ($rs) {
-       echo '
-         <script>
-            $(document).ready(function(){ 
-              swal({
-                title: "Success",
-                text: "Feedback delete Successfully!",
-                icon: "success",
-                });
-            });
-          </script>
-       ';
-     }
-   }
- }
- deleteFeedback();
-
- function addFollowUs(){ 
-  global $connection;
-  if(isset($_POST['btn-add-followUs'])){
-    $thumbnail = $_FILES['thumbnail']['name'];
-    $label = $_POST['label'];
-    $url = $_POST['url'];
-      if(!empty($thumbnail) && !empty($label) && !empty($url)){
-
-          $thumbnail = rand(1, 99999).'_'.$thumbnail;
-          $pathThumbnail = 'assets/image/' . $thumbnail;
-          move_uploaded_file($_FILES['thumbnail']['tmp_name'], $pathThumbnail);
-
-          $sql = "INSERT INTO `follow_us`(`thumbnail`,`label`,`url`) VALUES ('$thumbnail','$label','$url')";
-          $rs = $connection->query($sql);
-          if ($rs) {
-              echo '
-                <script>
-                    $(document).ready(function(){ 
-                        swal({
-                          title: "Success",
-                          text: "Follow Us add Successfully!",
-                          icon: "success",
-                        });
-                      });
-                </script>
-              ';
-          } 
-      } 
-      //  else{
-      //    echo'
-      //      <script>
-      //         $(document).ready(function(){ 
-      //             swal({
-      //               title: "Error",
-      //               text: "Follow Us add Unsuccessfully!",
-      //               icon: "error",
-      //             });
-      //           });
-      //      </script>
-      //    ';
-      //  }   
-  }
-  
-}
-
-addFollowUs();
-
-function viewAllFollowUs()
-{
-  global $connection;
-  $sql = "SELECT * FROM `follow_us` ORDER BY `id` DESC";
-  $rs = $connection->query($sql);
-  while ($row = mysqli_fetch_assoc($rs)) {
-    echo '
-        <tr>
-                <td>' . $row['id'] . '</td>
-                 <td><img src="assets/image/' . $row['thumbnail'] . '" width="40px"/></td>
-                <td>' . $row['label'] . '</td>
-                <td>' . $row['url'] . '</td>
-                 <td width="150px">
-                 <a href="update-follow-us.php?id=' . $row['id'] . '" class="btn btn-primary">Update</a>
-                <button type="button" remove-id="' . $row['id'] . '" class="btn btn-danger btn-remove" data-bs-toggle="modal" data-bs-target="#exampleModal">
-                Remove
-             </button>
-           </td>
-        </tr>
-    ';
-  }
-}
-
-function updateFollowUs(){
-  global $connection;
-  if(isset($_POST['btn-update-followUs'])){
-    $id = $_GET['id'];
-    $thumbnail = $_FILES['thumbnail']['name'];
-    $label = $_POST['txtLabel'];
-    $url = $_POST['txtUrl'];
-
-    if($thumbnail){
-      $thumbnail = rand(1, 99999).'_'.$thumbnail;
-      $pathThumbnail = 'assets/image/' . $thumbnail;
-      move_uploaded_file($_FILES['thumbnail']['tmp_name'], $pathThumbnail);
-    }
-    else{
-      $thumbnail = $_POST['old_thumbnail'];
-    }
-    if(!empty($thumbnail) && !empty($label) && !empty($url)){
-
-      $sql ="UPDATE `follow_us` SET `thumbnail`='$thumbnail', `label`='$label', `url`='$url' WHERE `id`='$id'";
-      $rs = $connection->query($sql);
-     if($rs){
-      echo'
-         <script>
-            $(document).ready(function(){ 
-                swal({
-                  title: "Success",
-                  text: "Follow Us update Successfully!",
-                  icon: "success",
-              });
-            });
-         </script>
-      ';
-    }
-  }
-  else{
-    echo'
-      <script>
-          $(document).ready(function(){ 
-              swal({
-                title: "Error",
-                text: "Follow Us update Unsuccessfully!",
-                icon: "error",
-            });
-          });
-      </script>
-      ';
-  }
- }
-}
-updateFollowUs();
-
-function deleteFollowUs()
-{
-  global $connection;
-  if (isset($_POST['btn-delete-followUs'])) {
-    $id = $_POST['remove_id'];
-    $sql = "DELETE FROM `follow_us` WHERE `id` = '$id'";
-    $rs = $connection->query($sql);
-    if ($rs) {
-      echo '
-         <script>
-            $(document).ready(function(){ 
-                swal({
-                  title: "Success",
-                  text: "Follow Us delete Successfully!",
-                  icon: "success",
-              });
-            });
-         </script>
-      ';
-    }
-  }
-}
-deleteFollowUs();
-
+<?php $conn->close(); ?>
 

@@ -230,6 +230,7 @@ include('header.php');
             </div>
         </div>
     </section>
+    
     <!--================End Cart Area =================-->
 
     <!-- start footer Area -->
